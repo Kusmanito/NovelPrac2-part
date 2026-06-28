@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Библиотечная практика</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', 'Georgia', serif;
+      background: #0a0806;
+      color: #f0e6d3;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      margin: 0;
+    }
+    #game {
+      max-width: 1200px;
+      width: 100%;
+      position: relative;
+      border-radius: 30px;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.9);
+      background: #1a100a;
+      border: 1px solid #3d281c;
+    }
+    #scene {
+      position: relative;
+      min-height: 650px;
+      background-size: cover;
+      background-position: center;
+      background-color: #1a100a;
+      transition: background-image 0.8s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 20px 25px 25px;
+    }
+    #scene::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: linear-gradient(to top, rgba(10,8,6,0.85) 0%, rgba(10,8,6,0.1) 80%, transparent 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      padding: 15px 25px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+      font-size: 0.85em;
+      color: #b89570;
+      pointer-events: none;
+    }
+    .header span {
+      background: rgba(0,0,0,0.5);
+      padding: 4px 18px;
+      border-radius: 30px;
+      border: 1px solid #4d3524;
+      backdrop-filter: blur(4px);
+      font-weight: bold;
+      color: #c9a87c;
+    }
+    .characters-on-bg {
+      position: absolute;
+      bottom: 160px;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 10px;
+      padding: 0 10px;
+      pointer-events: none;
+      min-height: 300px;
+    }
+    .char-on-bg {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      filter: drop-shadow(0 15px 40px rgba(0,0,0,0.7));
+      transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      opacity: 0;
+      transform: scale(0.5) translateY(40px);
+      pointer-events: none;
+    }
+    .char-on-bg.visible {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    .char-on-bg img {
+      height: 280px;
+      width: auto;
+      max-width: 200px;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 5px 20px rgba(0,0,0,0.5));
+    }
+    .char-on-bg.librarian img { height: 300px; max-width: 220px; }
+    .char-on-bg .label {
+      margin-top: -5px;
+      font-size: 0.8em;
+      color: #c9a87c;
+      background: rgba(0,0,0,0.6);
+      padding: 2px 16px;
+      border-radius: 20px;
+      backdrop-filter: blur(4px);
+      border: 1px solid #3d281c;
+      white-space: nowrap;
+      font-weight: bold;
+    }
+    .char-on-bg.speaking {
+      filter: drop-shadow(0 0 30px rgba(200,170,120,0.25)) drop-shadow(0 15px 40px rgba(0,0,0,0.7));
+      transform: scale(1.05);
+    }
+    .char-on-bg.speaking .label {
+      color: #eaceb0;
+      border-color: #c9a87c;
+      background: rgba(30,18,10,0.8);
+    }
+    .dialog-area {
+      position: relative;
+      z-index: 5;
+      background: rgba(20,12,8,0.88);
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      border: 1px solid #3d281c;
+      padding: 18px 24px 16px;
+      margin-top: 10px;
+      min-height: 110px;
+      box-shadow: 0 -10px 50px rgba(0,0,0,0.6);
+    }
+    .dialog-speaker {
+      font-weight: bold;
+      font-size: 1.05em;
+      color: #eaceb0;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dialog-speaker .speaker-icon {
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #2d1d12;
+      border: 1px solid #4d3524;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .dialog-speaker .speaker-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .dialog-speaker .name {
+      background: rgba(0,0,0,0.3);
+      padding: 2px 16px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      border: 1px solid #3d281c;
+    }
+    .dialog-text {
+      font-size: 1.05em;
+      line-height: 1.6;
+      color: #f5ede4;
+      padding: 6px 4px 2px;
+      min-height: 40px;
+    }
+    .btn-panel {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 15px;
+      z-index: 5;
+      position: relative;
+    }
+    .btn {
+      background: linear-gradient(145deg, #3a2619, #2a1a10);
+      border: 1px solid #4d3524;
+      color: #f5ede4;
+      padding: 12px 32px;
+      border-radius: 40px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.25s;
+      box-shadow: 0 4px 0 #1a0f0a;
+      letter-spacing: 0.3px;
+      flex: 0 1 auto;
+      min-width: 130px;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+    .btn:hover {
+      background: linear-gradient(145deg, #5a3f2b, #3a2619);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #1a0f0a;
+      border-color: #6b4f35;
+    }
+    .btn-primary {
+      background: linear-gradient(145deg, #6b4f35, #4d3524);
+      border-color: #6b4f35;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(145deg, #8b6b4b, #6b4f35);
+      border-color: #8b6b4b;
+    }
+    .final-scene { text-align: center; padding: 20px 10px; }
+    .final-scene .final-photo {
+      max-width: 100%;
+      max-height: 280px;
+      border-radius: 24px;
+      border: 6px solid #8b6b4b;
+      box-shadow: 0 0 60px rgba(200,170,120,0.15);
+      margin: 10px 0 20px;
+    }
+    .final-scene .final-title { font-size: 1.6em; color: #eaceb0; margin-bottom: 10px; }
+    .final-scene .final-sub { color: #b89570; font-size: 1.1em; line-height: 1.7; }
+    @media (max-width: 900px) {
+      .char-on-bg img { height: 200px; max-width: 140px; }
+      .char-on-bg.librarian img { height: 220px; max-width: 160px; }
+      .characters-on-bg { bottom: 140px; gap: 5px; min-height: 220px; }
+    }
+    @media (max-width: 650px) {
+      #scene { min-height: 500px; padding: 12px 15px 15px; }
+      .char-on-bg img { height: 150px; max-width: 110px; }
+      .char-on-bg.librarian img { height: 170px; max-width: 120px; }
+      .characters-on-bg { bottom: 120px; gap: 3px; min-height: 170px; }
+      .char-on-bg .label { font-size: 0.6em; padding: 1px 10px; }
+      .dialog-area { padding: 12px 16px; min-height: 90px; }
+      .dialog-text { font-size: 0.95em; }
+    }
+    @media (max-width: 450px) {
+      .char-on-bg img { height: 110px; max-width: 80px; }
+      .char-on-bg.librarian img { height: 130px; max-width: 90px; }
+      .characters-on-bg { bottom: 100px; gap: 2px; min-height: 130px; }
+    }
+  </style>
+</head>
+<body>
+<div id="game">
+  <div id="scene">
+    <div class="header">
+      <span id="weekBadge">📚 Первая неделя</span>
+      <span id="dayBadge">📌 Вторник</span>
+    </div>
+    <div class="characters-on-bg" id="charBg"></div>
+    <div class="dialog-area">
+      <div class="dialog-speaker">
+        <span class="speaker-icon" id="speakerIcon"><img src="" alt=""></span>
+        <span class="name" id="speakerName">Библиотекарь</span>
+      </div>
+      <div class="dialog-text" id="dialogText">Добро пожаловать на практику!</div>
+    </div>
+    <div class="btn-panel" id="btnPanel"></div>
+  </div>
+</div>
+
+<script>
+  // ===== ДАННЫЕ =====
+  const CHARS = {
+    me: { name: 'Я', img: 'https://github.com/Kusmanito/Twine/blob/main/kandinsky-download-1761044707521-no-bg-preview%20(carve.photos).png?raw=true' },
+    nikita: { name: 'Никита', img: 'https://github.com/misterbiznes0/photo/blob/main/user.png?raw=true' },
+    anton: { name: 'Антон', img: 'https://raw.githubusercontent.com/AntonioSniper/Twine/refs/heads/main/kandinsky-download-1761044761256%20(1).png' },
+    librarian: { name: 'Библиотекарь', img: 'https://github.com/Kusmanito/Twine/blob/main/image_processing20230117-8024-aat0yx.png?raw=true' }
+  };
+
+  const BG = {
+    library: 'https://www.mos.ru/upload/newsfeed/articles/e2f0ae81c34005620b819a2509d061da/3.jpg',
+    storage: 'https://avatars.mds.yandex.net/i?id=58fac993de5428809f3a333fb3a401b4_l-6894630-images-thumbs&n=13',
+    repair: 'https://cdn.iz.ru/sites/default/files/styles/900x600/public/photo_item-2019-05/1558696184_6.jpg?itok=-Nm8e0lv'
+  };
+
+  // ===== СОСТОЯНИЕ =====
+  let state = {
+    week: 1,
+    day: 'tuesday',
+    finished: false,
+    dialogIndex: 0,
+    sceneData: null
+  };
+
+  // ===== ЭЛЕМЕНТЫ =====
+  const sceneEl = document.getElementById('scene');
+  const weekBadge = document.getElementById('weekBadge');
+  const dayBadge = document.getElementById('dayBadge');
+  const charBg = document.getElementById('charBg');
+  const speakerIcon = document.getElementById('speakerIcon');
+  const speakerName = document.getElementById('speakerName');
+  const dialogText = document.getElementById('dialogText');
+  const btnPanel = document.getElementById('btnPanel');
+
+  // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+  function getWeekLabel(w) { return ['', 'Первая', 'Вторая', 'Третья'][w] || w; }
+  function getDayLabel(d) { return d === 'tuesday' ? 'Вторник' : 'Среда'; }
+
+  function setBg(url) {
+    sceneEl.style.backgroundImage = `url(${url})`;
+    sceneEl.style.backgroundSize = 'cover';
+    sceneEl.style.backgroundPosition = 'center';
+  }
+
+  function renderBgChars(activeSpeakers) {
+    return Object.keys(CHARS).map(key => {
+      const ch = CHARS[key];
+      const isLib = key === 'librarian';
+      const isActive = activeSpeakers.includes(key);
+      const isSpeaking = activeSpeakers.length === 1 && activeSpeakers[0] === key;
+      return `<div class="char-on-bg ${isLib ? 'librarian' : ''} ${isActive ? 'visible' : ''} ${isSpeaking ? 'speaking' : ''}" data-char="${key}">
+        <img src="${ch.img}" alt="${ch.name}" onerror="this.src='https://via.placeholder.com/200/4a3428/eddcc8?text=${ch.name}'">
+        <div class="label">${ch.name}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ===== СЦЕНЫ =====
+  function getSceneData() {
+    if (state.finished) return null;
+    const w = state.week;
+    const d = state.day;
+
+    if (w === 1 && d === 'tuesday') {
+      return {
+        bg: BG.storage,
+        dialogs: [
+          { speaker: 'librarian', text: 'Мальчики, сегодня начнём с подсобки. Там скопилось много хлама, нужно всё вынести.' },
+          { speaker: 'nikita', text: 'Поняли! А что именно выбрасываем?' },
+          { speaker: 'librarian', text: 'Старые коробки, сломанную мебель, пустые ящики. Но журналы и книги не трогайте — их позже разберём.' },
+          { speaker: 'anton', text: 'Договорились. Берёмся за работу!' },
+          { speaker: 'me', text: 'Давайте начнём с дальнего угла, там больше всего мусора.' }
+        ],
+        buttons: [{ label: 'Продолжить →', action: 'nextDay' }]
+      };
+    }
+    if (w === 1 && d === 'wednesday') {
+      return {
+        bg: BG.library,
+        dialogs: [
+          { speaker: 'librarian', text: 'Сегодня будем расставлять книги на стеллажах по алфавиту.' },
+          { speaker: 'nikita', text: 'Ого, это же целая библиотека! Сколько здесь книг?' },
+          { speaker: 'librarian', text: 'Около десяти тысяч. Но вы справитесь, я верю в вас.' },
+          { speaker: 'anton', text: 'Главное — не перепутать буквы. Я возьму секцию "А-Д".' },
+          { speaker: 'me', text: 'А я "Е-К". Вместе быстро управимся.' },
+          { speaker: 'nikita', text: 'Тогда я "Л-Р". Поехали!' }
+        ],
+        buttons: [{ label: 'Следующая неделя →', action: 'nextWeek' }]
+      };
+    }
+    if (w === 2 && d === 'tuesday') {
+      return {
+        bg: BG.library,
+        dialogs: [
+          { speaker: 'librarian', text: 'Теперь серьёзная задача — перенести стеллажи из главного зала в спецпомещение.' },
+          { speaker: 'anton', text: 'Они же тяжёлые! Нам нужна тележка?' },
+          { speaker: 'librarian', text: 'Тележка есть, но стеллажи придётся разобрать на части.' },
+          { speaker: 'me', text: 'Тогда давайте сначала освободим проход, чтобы было удобно переносить.' },
+          { speaker: 'nikita', text: 'Я возьму инструменты, а вы пока освободите стеллажи от книг.' }
+        ],
+        buttons: [{ label: 'Продолжить →', action: 'nextDay' }]
+      };
+    }
+    if (w === 2 && d === 'wednesday') {
+      return {
+        bg: BG.library,
+        dialogs: [
+          { speaker: 'librarian', text: 'Продолжаем переносить стеллажи. Осталось всего несколько.' },
+          { speaker: 'nikita', text: 'Мы уже почти всё перетащили! Остался только самый большой.' },
+          { speaker: 'anton', text: 'Давайте его аккуратно разберём и перенесём по частям.' },
+          { speaker: 'me', text: 'Я помогу держать, чтобы ничего не упало.' },
+          { speaker: 'librarian', text: 'Молодцы, ребята! Ещё чуть-чуть и всё будет готово.' }
+        ],
+        buttons: [{ label: 'Следующая неделя →', action: 'nextWeek' }]
+      };
+    }
+    if (w === 3 && d === 'tuesday') {
+      return {
+        bg: BG.repair,
+        dialogs: [
+          { speaker: 'librarian', text: 'Последний рывок! Переносим оставшиеся стеллажи и начинаем укрывать всё плёнкой.' },
+          { speaker: 'anton', text: 'Зачем плёнка?' },
+          { speaker: 'librarian', text: 'Скоро ремонт, нужно защитить книги и стеллажи от пыли и краски.' },
+          { speaker: 'nikita', text: 'А мы успеем за день?' },
+          { speaker: 'me', text: 'Успеем, если будем работать слаженно. Я беру плёнку и скотч.' },
+          { speaker: 'librarian', text: 'Отлично! После этого можете быть свободны. Практика завершена.' }
+        ],
+        buttons: [{ label: 'Завершить практику 🎉', action: 'finish', primary: true }]
+      };
+    }
+    if (w === 3 && d === 'wednesday') {
+      state.finished = true;
+      return null;
+    }
+    state.finished = true;
+    return null;
+  }
+
+  // ===== ОТОБРАЖЕНИЕ =====
+  function showDialog(index) {
+    const data = state.sceneData;
+    if (!data || index >= data.dialogs.length) return;
+    
+    const d = data.dialogs[index];
+    const char = CHARS[d.speaker] || { name: d.speaker, img: '' };
+    
+    speakerIcon.innerHTML = `<img src="${char.img}" alt="" onerror="this.style.display='none'">`;
+    speakerName.textContent = char.name;
+    dialogText.textContent = d.text;
+    
+    const allSpeakers = data.dialogs.map(d => d.speaker);
+    const uniqueSpeakers = [...new Set(allSpeakers)];
+    charBg.innerHTML = renderBgChars(uniqueSpeakers);
+    
+    document.querySelectorAll('.char-on-bg').forEach(el => {
+      el.classList.toggle('speaking', el.dataset.char === d.speaker);
+    });
+    
+    state.dialogIndex = index;
+    const isLast = index >= data.dialogs.length - 1;
+    
+    if (isLast) {
+      btnPanel.innerHTML = data.buttons.map(b => 
+        `<button class="btn ${b.primary ? 'btn-primary' : ''}" onclick="doAction('${b.action}')">${b.label}</button>`
+      ).join('');
+    } else {
+      btnPanel.innerHTML = `<button class="btn" onclick="showDialog(${index + 1})">Далее →</button>`;
+    }
+  }
+
+  function doAction(action) {
+    if (action === 'nextDay') {
+      state.day = state.day === 'tuesday' ? 'wednesday' : 'tuesday';
+      if (state.day === 'tuesday') state.week += 1;
+      renderScene();
+    } else if (action === 'nextWeek') {
+      state.week += 1;
+      state.day = 'tuesday';
+      renderScene();
+    } else if (action === 'finish') {
+      state.finished = true;
+      renderScene();
+    }
+  }
+
+  function renderScene() {
+    if (state.finished) {
+      setBg('https://www.mos.ru/upload/newsfeed/articles/e2f0ae81c34005620b819a2509d061da/3.jpg');
+      weekBadge.textContent = '🏁 Практика завершена';
+      dayBadge.textContent = '📚 Три недели позади';
+      charBg.innerHTML = renderBgChars(['me', 'nikita', 'anton', 'librarian']);
+      
+      dialogText.innerHTML = `
+        <div class="final-scene">
+          <div class="final-title">🎉 Практика успешно завершена!</div>
+          <img class="final-photo" src="https://github.com/Kusmanito/photos/blob/main/IMG_20260610_164406_893.jpg?raw=true" 
+               alt="Фото на память" 
+               onerror="this.src='https://via.placeholder.com/600x300/2c1a10/eaceb0?text=📸+Фото+на+память'">
+          <div class="final-sub">
+            Мы отлично поработали три недели, помогли библиотеке подготовиться к ремонту<br>
+            и получили бесценный опыт.<br>
+            <span style="color:#d4bc9a;">Спасибо, Библиотекарь!</span>
+          </div>
+          <button class="btn btn-primary" onclick="restartGame()">🔄 Пройти заново</button>
+        </div>
+      `;
+      speakerIcon.innerHTML = '';
+      speakerName.textContent = '📖 Финальная сцена';
+      btnPanel.innerHTML = '';
+      return;
+    }
+
+    const data = getSceneData();
+    if (!data) {
+      state.finished = true;
+      renderScene();
+      return;
+    }
+    
+    state.sceneData = data;
+    setBg(data.bg);
+    weekBadge.textContent = `📚 ${getWeekLabel(state.week)} неделя`;
+    dayBadge.textContent = `📌 ${getDayLabel(state.day)}`;
+    showDialog(0);
+  }
+
+  function restartGame() {
+    state = {
+      week: 1,
+      day: 'tuesday',
+      finished: false,
+      dialogIndex: 0,
+      sceneData: null
+    };
+    renderScene();
+  }
+
+  // ===== ЗАПУСК =====
+  renderScene();
+</script>
+</body>
+</html>
